@@ -7,6 +7,6 @@ pomorodo
 
 **PUSH /logout** - Ends session
 
-**GET /start?time=<timestamp>** - Starts pomodoro at time, returns pomodoroID
+**GET /start?time={timestamp}** - Starts pomodoro at time, returns pomodoroID
 
 **PUSH /end** with **id={pomodoroID}, time={timestamp}** - Ends pomodoro at time
