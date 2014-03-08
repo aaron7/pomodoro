@@ -1,0 +1,96 @@
+{% extends "layout.html" %}
+
+{% block header %}{{ username }}'s Statistics{% endblock %}
+{% block description %}{% endblock %}
+
+{% block body %}
+<div class="row">
+    <div class="col-md-6">
+        <h3>Overview</h3>
+        <p><strong>Number of Pomodoros completed yesterday:</strong> {{ yesterday }}</p>
+
+        <h3>Grid</h3>
+        <table id="datagrid" border="1">
+          <tr><td><b>ID</b></td><td><b>User ID</b></td><td><b>Start Time</b></td><td><b>End Time</b></td></tr>
+          {% for entry in entries %}
+            <tr><td>{{ entry.id }}</td><td>{{ entry.user_id }}</td><td>{{ entry.start }}</td><td>{{ entry.end }}</td></tr>
+          {% else %}
+            <tr><td>No data here!</td></tr>
+          {% endfor %}
+        </table>
+    </div>
+
+    <div class="col-md-6">
+        <h3>Last 7 days</h3>
+        <table id="daysHeader" width="500" style="table-layout: fixed;"></table>
+        <canvas id="visual" width="500" height="600" style="border:1px solid #d3d3d3;">
+        Your browser does not support the HTML5 canvas tag.</canvas>
+    </div>
+
+</div>
+
+<script>
+
+var width=500;
+var height=600;
+var s_height=height/(24.0*60.0*60.0);
+var header_height=20;
+
+var c=document.getElementById("visual");
+var ctx=c.getContext("2d");
+
+pomodoros = {{ visual_last_week|tojson|safe }};
+console.log(pomodoros);
+
+
+//Get correct order of days
+var days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+var step = {{ day }} + 1;
+while( step-- ){
+    var temp = days.shift();
+    days.push( temp );
+}
+
+//Draw header
+var table = document.getElementById("daysHeader")
+var tableBody = document.createElement('TBODY')
+table.appendChild(tableBody);
+var tr = document.createElement('TR');
+tableBody.appendChild(tr);
+for (i = 0; i < 7; i++) {
+    var td = document.createElement('TD')
+    td.appendChild(document.createTextNode(days[i]));
+    tr.appendChild(td)
+}
+
+start = 0;
+
+for (var day=0;day<7;day++)
+{ 
+    //Draw grid
+    ctx.lineWidth = 0;
+    ctx.fillStyle="#000000";
+    ctx.fillRect(start,0,width/7,height);
+
+    //Draw pomodoros
+    ctx.fillStyle="#FF8C00";
+    if (pomodoros[day]) {
+        $.each(pomodoros[day], function( index, value ) {
+            ctx.fillRect(
+                start,
+                (s_height * value['start']),
+                width/7,
+                s_height * (value['end']-value['start']));
+        });
+    }
+
+    start += width/7;
+}
+
+//ctx.stroke();
+
+</script> 
+
+{% endblock %}
+
+

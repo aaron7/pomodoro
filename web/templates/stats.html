@@ -1,0 +1,10 @@
+{% extends "layout.html" %}
+{% block body %}
+  <ul class=entries>
+  {% for entry in entries %}
+    <li>Start: {{ entry.start }}, End: {{ entry.end }}
+  {% else %}
+    <li><em>No pomodoros!</em>
+  {% endfor %}
+  </ul>
+{% endblock %}
