@@ -1,6 +1,6 @@
 import sqlite3
 import os
-from flask import Flask, request, session, g, abort
+from flask import Flask, request, session, g, abort, render_template
 
 app = Flask(__name__)
 app.config.from_object(__name__)
@@ -94,6 +94,14 @@ def pomodoro_end():
                [request.form['time'], request.form['id'], session.get('user_id')])
     db.commit()
     return 'OK', 200
+
+
+@app.route("/")
+def info():
+    db = get_db()
+    cur = db.execute('select id,user_id,start,end from pomodoros order by id asc')
+    entries = cur.fetchall()
+    return render_template('info.html', entries=entries)
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0')

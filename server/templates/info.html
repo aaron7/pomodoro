@@ -1,0 +1,8 @@
+<table border="1">
+  <tr><td><b>ID</b></td><td><b>User ID</b></td><td><b>Start Time</b></td><td><b>End Time</b></td></tr>
+  {% for entry in entries %}
+    <tr><td>{{ entry.id }}</td><td>{{ entry.user_id }}</td><td>{{ entry.start }}</td><td>{{ entry.end }}</td></tr>
+  {% else %}
+    <tr><td>No data here!</td></tr>
+  {% endfor %}
+</table>
