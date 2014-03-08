@@ -7,9 +7,11 @@
 <div class="row">
     <div class="col-md-6">
         <h3>Overview</h3>
+        <p><strong>Number of Pomodoros completed so far today:</strong> {{ today }}</p>
         <p><strong>Number of Pomodoros completed yesterday:</strong> {{ yesterday }}</p>
+        <p><strong><a href="https://sleep-cloud.appspot.com/auth?user_token=105567647467843605466_1nq9cjp3ct1sf2cnfus4acfph1">Link to sleep stats</a></strong></p>
 
-        <h3>Grid</h3>
+        <h3>Debug</h3>
         <table id="datagrid" border="1">
           <tr><td><b>ID</b></td><td><b>User ID</b></td><td><b>Start Time</b></td><td><b>End Time</b></td></tr>
           {% for entry in entries %}

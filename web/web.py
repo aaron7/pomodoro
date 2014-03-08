@@ -13,7 +13,7 @@ app.config.from_object(__name__)
 # Load default config and override config from an environment variable
 app.config.update(dict(
     DATABASE=os.path.join(app.root_path, '../server/pomodoro.db'),
-    DEBUG=True,
+    DEBUG=False,
     SECRET_KEY=getSecretKey()
 ))
 app.config.from_envvar('POMODORO_SETTINGS', silent=True)
@@ -54,13 +54,25 @@ def sqlite2json(data):
     return [dict(zip(columns, r)) for r in data]
 
 
+def today_count(user_id):
+    now = datetime.now()
+    previous_midnight = datetime(now.year, now.month, now.day)
+    start_of_day = int(time.mktime(previous_midnight.timetuple()))
+    end_of_day = int(start_of_day + (24*60*60))
+
+    count = query_db('select COUNT(*) from pomodoros where user_id = ? and end > ? and end < ? and (end - start) > 900',
+                     [user_id, start_of_day, end_of_day], one=True)[0]
+
+    return count
+
+
 def yesterday_count(user_id):
     now = datetime.now()
     previous_midnight = datetime(now.year, now.month, now.day)
     end_of_day = int(time.mktime(previous_midnight.timetuple()))
     start_of_day = int(end_of_day - (24*60*60))
 
-    count = query_db('select COUNT(*) from pomodoros where user_id = ? and end > ? and end < ?',
+    count = query_db('select COUNT(*) from pomodoros where user_id = ? and end > ? and end < ? and (end - start) > 900',
                      [user_id, start_of_day, end_of_day], one=True)[0]
 
     return count
@@ -115,7 +127,8 @@ def user_stats(username):
     visual_last_week = last_week(user_id)
 
     return render_template('user_stats.html', username=username,
-        yesterday=yesterday_count(user_id), visual_last_week=visual_last_week, day=datetime.today().weekday(), entries=entries)
+        yesterday=yesterday_count(user_id), visual_last_week=visual_last_week,
+        today=today_count(user_id), day=datetime.today().weekday(), entries=entries)
 
 @app.route("/")
 def welcome():
