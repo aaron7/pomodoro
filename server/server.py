@@ -1,7 +1,6 @@
 import sqlite3
 import os
 from flask import Flask, request, session, g, abort, render_template
-from secret import getSecretKey
 
 app = Flask(__name__)
 app.config.from_object(__name__)
@@ -10,7 +9,7 @@ app.config.from_object(__name__)
 app.config.update(dict(
     DATABASE=os.path.join(app.root_path, 'pomodoro.db'),
     DEBUG=False,
-    SECRET_KEY=getSecretKey()
+    SECRET_KEY='SECRET_KEY'
 ))
 app.config.from_envvar('POMODORO_SETTINGS', silent=True)
 

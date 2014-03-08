@@ -1,7 +1,6 @@
 import sqlite3
 import os
 from flask import Flask, request, session, g, abort, render_template
-from secret import getSecretKey
 from datetime import datetime
 import time
 import json
@@ -14,7 +13,7 @@ app.config.from_object(__name__)
 app.config.update(dict(
     DATABASE=os.path.join(app.root_path, '../server/pomodoro.db'),
     DEBUG=False,
-    SECRET_KEY=getSecretKey()
+    SECRET_KEY='SECRET_KEY'
 ))
 app.config.from_envvar('POMODORO_SETTINGS', silent=True)
 
@@ -85,7 +84,7 @@ def last_week(user_id):
     end_of_week = int(time.mktime(previous_midnight.timetuple())) + (24*60*60)
     start_of_week = int(end_of_week - (7*24*60*60))
 
-    last_week = query_db('select id,user_id,start,end from pomodoros where user_id = ? and end > ? and end < ?',
+    last_week = query_db('select id,user_id,start,end from pomodoros where user_id = ? and end > ? and end < ? and (end - start) > 900',
                      [user_id, start_of_week, end_of_week])
 
     last_week = sqlite2json(last_week)
