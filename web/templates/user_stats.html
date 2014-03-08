@@ -4,18 +4,26 @@
 {% block description %}{% endblock %}
 
 {% block body %}
+
+<script>
+function unix_to_date(unix){
+    var date = new Date(unix*1000);
+    return date.toUTCString();
+}
+</script>
+
 <div class="row">
     <div class="col-md-6">
         <h3>Overview</h3>
-        <p><strong>Number of Pomodoros completed so far today:</strong> {{ today }}</p>
-        <p><strong>Number of Pomodoros completed yesterday:</strong> {{ yesterday }}</p>
+        <p><strong>Pomodoros today:</strong> {{ today }}</p>
+        <p><strong>Pomodoros yesterday:</strong> {{ yesterday }}</p>
         <p><strong><a href="https://sleep-cloud.appspot.com/auth?user_token=105567647467843605466_1nq9cjp3ct1sf2cnfus4acfph1">Link to sleep stats</a></strong></p>
 
-        <h3>Debug</h3>
+        <h3>Last 10 Pomodoros</h3>
         <table id="datagrid" border="1">
-          <tr><td><b>ID</b></td><td><b>User ID</b></td><td><b>Start Time</b></td><td><b>End Time</b></td></tr>
-          {% for entry in entries %}
-            <tr><td>{{ entry.id }}</td><td>{{ entry.user_id }}</td><td>{{ entry.start }}</td><td>{{ entry.end }}</td></tr>
+          <tr><td><b>Start Time</b></td><td><b>End Time</b></td></tr>
+          {% for entry in last10 %}
+            <tr><td><script>document.write(unix_to_date({{ entry.start }}))</script></td><td><script>document.write(unix_to_date({{ entry.end }}))</script></td></tr>
           {% else %}
             <tr><td>No data here!</td></tr>
           {% endfor %}
@@ -43,7 +51,6 @@ var ctx=c.getContext("2d");
 
 pomodoros = {{ visual_last_week|tojson|safe }};
 console.log(pomodoros);
-
 
 //Get correct order of days
 var days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
