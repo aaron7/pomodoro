@@ -13,7 +13,8 @@ app.config.from_object(__name__)
 app.config.update(dict(
     DATABASE=os.path.join(app.root_path, '../server/pomodoro.db'),
     DEBUG=False,
-    SECRET_KEY='SECRET_KEY'
+    SECRET_KEY='SECRET_KEY',
+    MIN_POMODORO_TIME=15*60
 ))
 app.config.from_envvar('POMODORO_SETTINGS', silent=True)
 
@@ -59,7 +60,8 @@ def today_count(user_id):
     start_of_day = int(time.mktime(previous_midnight.timetuple()))
     end_of_day = int(start_of_day + (24*60*60))
 
-    count = query_db('select COUNT(*) from pomodoros where user_id = ? and end > ? and end < ? and (end - start) > 900',
+    count = query_db('select COUNT(*) from pomodoros where user_id = ? and end > ? and end < ? and (end - start) > ' +
+                     app.config['MIN_POMODORO_TIME'],
                      [user_id, start_of_day, end_of_day], one=True)[0]
 
     return count
@@ -71,21 +73,22 @@ def yesterday_count(user_id):
     end_of_day = int(time.mktime(previous_midnight.timetuple()))
     start_of_day = int(end_of_day - (24*60*60))
 
-    count = query_db('select COUNT(*) from pomodoros where user_id = ? and end > ? and end < ? and (end - start) > 900',
+    count = query_db('select COUNT(*) from pomodoros where user_id = ? and end > ? and end < ? and (end - start) > ' +
+                     app.config['MIN_POMODORO_TIME'],
                      [user_id, start_of_day, end_of_day], one=True)[0]
 
     return count
 
 
 def last_week(user_id):
-    MIN_TIME = 15*60  # 15 minutes
     now = datetime.now()
     previous_midnight = datetime(now.year, now.month, now.day)
     end_of_week = int(time.mktime(previous_midnight.timetuple())) + (24*60*60)
     start_of_week = int(end_of_week - (7*24*60*60))
 
-    last_week = query_db('select id,user_id,start,end from pomodoros where user_id = ? and end > ? and end < ? and (end - start) > 900',
-                     [user_id, start_of_week, end_of_week])
+    last_week = query_db('select id,user_id,start,end from pomodoros where user_id = ? and end > ? and end < ? and (end - start) > ' +
+                         app.config['MIN_POMODORO_TIME'],
+                         [user_id, start_of_week, end_of_week])
 
     last_week = sqlite2json(last_week)
 
@@ -101,8 +104,7 @@ def last_week(user_id):
                 offset = start_of_week + ((day-1) * 24*60*60)
                 pomodoro["start"] = pomodoro["start"] - offset
                 pomodoro["end"] = pomodoro["end"] - offset
-                if pomodoro["end"] - pomodoro["start"] > MIN_TIME:
-                    data[day-1].append(pomodoro)
+                data[day-1].append(pomodoro)
                 break
             else:
                 day += 1
