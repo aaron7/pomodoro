@@ -61,7 +61,7 @@ def today_count(user_id):
     end_of_day = int(start_of_day + (24*60*60))
 
     count = query_db('select COUNT(*) from pomodoros where user_id = ? and end > ? and end < ? and (end - start) > ' +
-                     app.config['MIN_POMODORO_TIME'],
+                     str(app.config['MIN_POMODORO_TIME']),
                      [user_id, start_of_day, end_of_day], one=True)[0]
 
     return count
@@ -74,7 +74,7 @@ def yesterday_count(user_id):
     start_of_day = int(end_of_day - (24*60*60))
 
     count = query_db('select COUNT(*) from pomodoros where user_id = ? and end > ? and end < ? and (end - start) > ' +
-                     app.config['MIN_POMODORO_TIME'],
+                     str(app.config['MIN_POMODORO_TIME']),
                      [user_id, start_of_day, end_of_day], one=True)[0]
 
     return count
@@ -87,7 +87,7 @@ def last_week(user_id):
     start_of_week = int(end_of_week - (7*24*60*60))
 
     last_week = query_db('select id,user_id,start,end from pomodoros where user_id = ? and end > ? and end < ? and (end - start) > ' +
-                         app.config['MIN_POMODORO_TIME'],
+                         str(app.config['MIN_POMODORO_TIME']),
                          [user_id, start_of_week, end_of_week])
 
     last_week = sqlite2json(last_week)
