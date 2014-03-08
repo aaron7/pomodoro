@@ -3,10 +3,10 @@ pomorodo
 
 # Server API
 
-PUSH /login - user=<username>, pass=<password> - Creates session with cookie.
+**PUSH /login** with **user={username}, pass={password}** - Creates session with cookie.
 
-PUSH /logout - Ends session
+**PUSH /logout** - Ends session
 
-GET /start?time=<timestamp> - returns pomodoroID - Starts pomodoro at time
+**GET /start?time=<timestamp>** - Starts pomodoro at time, returns pomodoroID
 
-PUSH /end - id=<pomodoroID>, time=<timestamp> - Ends pomodoro at time
+**PUSH /end** with **id={pomodoroID}, time={timestamp}** - Ends pomodoro at time
