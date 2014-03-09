@@ -13,7 +13,7 @@ app.config.from_object(__name__)
 # Load default config and override config from an environment variable
 app.config.update(dict(
     DATABASE=os.path.join(app.root_path, '../server/pomodoro.db'),
-    DEBUG=True,
+    DEBUG=False,
     SECRET_KEY=SECRET_KEY,
     MIN_POMODORO_TIME=15*60
 ))
@@ -84,9 +84,6 @@ def last_n(user_id, n=10):
     last_n_entries = query_db('select id,user_id,start,end from pomodoros where user_id = ? and (end - start) > ' +
                               str(app.config['MIN_POMODORO_TIME']) + ' order by id desc limit '+str(n),
                               [user_id])
-
-    print "HERE"
-    print last_n_entries
 
     return sqlite2json(last_n_entries)
 
