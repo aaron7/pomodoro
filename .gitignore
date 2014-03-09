@@ -68,4 +68,4 @@ docs/_build/
 secret.py
 
 # Databases
-*.db
+pomodoro.db
