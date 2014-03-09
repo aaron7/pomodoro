@@ -5,6 +5,7 @@ from datetime import datetime
 import time
 import json
 from collections import defaultdict
+from secret import SECRET_KEY
 
 app = Flask(__name__)
 app.config.from_object(__name__)
@@ -13,7 +14,7 @@ app.config.from_object(__name__)
 app.config.update(dict(
     DATABASE=os.path.join(app.root_path, '../server/pomodoro.db'),
     DEBUG=True,
-    SECRET_KEY='SECRET_KEY',
+    SECRET_KEY=SECRET_KEY,
     MIN_POMODORO_TIME=15*60
 ))
 app.config.from_envvar('POMODORO_SETTINGS', silent=True)
