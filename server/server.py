@@ -108,7 +108,7 @@ def pomodoro_end():
 @app.route("/")
 def info():
     db = get_db()
-    cur = db.execute('select id,user_id,start,end from pomodoros order by id asc')
+    cur = db.execute('select id,user_id,start,end,type_id from pomodoros order by id asc')
     entries = cur.fetchall()
     return render_template('info.html', entries=entries)
 
