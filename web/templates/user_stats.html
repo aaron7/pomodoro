@@ -85,6 +85,13 @@ for (var day=0;day<7;day++)
     ctx.fillStyle="#FF8C00";
     if (pomodoros[day]) {
         $.each(pomodoros[day], function( index, value ) {
+            if (value['type_id'] == 1){
+                //Pomodoro
+                ctx.fillStyle="#FF8C00";
+            } else {
+                //Project
+                ctx.fillStyle="#336699";
+            }
             ctx.fillRect(
                 start,
                 (s_height * value['start']),

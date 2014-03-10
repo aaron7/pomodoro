@@ -4,7 +4,8 @@ create table pomodoros (
     id integer primary key autoincrement,
     user_id integer not null,
     start integer not null,
-    end integer
+    end integer,
+    type_id integer not null default '1'
 );
 create table users (
     id integer primary key autoincrement,

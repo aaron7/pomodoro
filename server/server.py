@@ -76,12 +76,20 @@ def start():
     if not session.get('logged_in'):
         abort(401)
 
+    # Get the type of entry
+    if 'type' in request.args:
+        entry_type = request.args.get('type')
+    else:
+        entry_type = 1
+
+    # Add to the database and get ID in one commit
     db = get_db()
-    db.execute('insert into pomodoros (user_id, start) values (?, ?)',
-               [session.get('user_id'), request.args.get('time')])
+    db.execute('insert into pomodoros (user_id, start, type_id) values (?, ?, ?)',
+               [session.get('user_id'), request.args.get('time'), entry_type])
     new_id = str(query_db('select last_insert_rowid()', one=True)[0])
     db.commit()
-    # Return the lastest pomodoro ID
+
+    # Return the ID of new entry
     return new_id
 
 

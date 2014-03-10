@@ -51,8 +51,9 @@ def query_db(query, args=(), one=False):
 
 
 def sqlite2json(data):
-    columns = ['id', 'user_id', 'start', 'end']
+    columns = ['id', 'user_id', 'start', 'end', 'type_id']
     return [dict(zip(columns, r)) for r in data]
+
 
 def today_count(user_id):
     now = datetime.now()
@@ -94,7 +95,7 @@ def last_week(user_id):
     end_of_week = int(time.mktime(previous_midnight.timetuple())) + (24*60*60)
     start_of_week = int(end_of_week - (7*24*60*60))
 
-    last_week = query_db('select id,user_id,start,end from pomodoros where user_id = ? and end > ? and end < ? and (end - start) > ' +
+    last_week = query_db('select id,user_id,start,end,type_id from pomodoros where user_id = ? and end > ? and end < ? and (end - start) > ' +
                          str(app.config['MIN_POMODORO_TIME']),
                          [user_id, start_of_week, end_of_week])
 
