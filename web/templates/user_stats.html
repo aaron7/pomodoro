@@ -1,33 +1,29 @@
 {% extends "layout.html" %}
 
 {% block header %}{{ username }}'s Statistics{% endblock %}
-{% block description %}{% endblock %}
 
 {% block body %}
-
-<script>
-function unix_to_date(unix){
-    var date = new Date(unix*1000);
-    return date.toUTCString();
-}
-</script>
-
 <div class="row">
     <div class="col-md-6">
         <h3>Overview</h3>
-        <p><strong>Pomodoros today:</strong> {{ today }}</p>
-        <p><strong>Pomodoros yesterday:</strong> {{ yesterday }}</p>
-        <p><strong><a href="https://sleep-cloud.appspot.com/auth?user_token=105567647467843605466_1nq9cjp3ct1sf2cnfus4acfph1">Link to sleep stats</a></strong></p>
+        <p><strong>Pomodoros so far today:</strong> {{ today }}</p>
+        <p><strong><a href="https://sleep-cloud.appspot.com/auth?user_token=105567647467843605466_v77tb7fmnbknss97vhgqiamdp0">Link to sleep stats</a></strong></p>
 
-        <h3>Last 10 Pomodoros</h3>
-        <table id="datagrid" border="1">
-          <tr><td><b>Start Time</b></td><td><b>End Time</b></td></tr>
-          {% for entry in last10 %}
-            <tr><td><script>document.write(unix_to_date({{ entry.start }}))</script></td><td><script>document.write(unix_to_date({{ entry.end }}))</script></td></tr>
+        <h3>Last 14 days</h3>
+        <table id="day_stats" border="1" width="100%">
+          <tr><td><b>Date</b></td><td><b>Pomodoros</b></td><td><b>Project Hours</b></td></tr>
+          {% for day in day_stats %}
+            <tr><td><script>document.write(unix_to_date({{ day.date }}))</script></td>
+            <td>{{ day.pomodoros }}</td>
+            <td>{{ day.projectHours }}</td>
+          </tr>
           {% else %}
             <tr><td>No data here!</td></tr>
           {% endfor %}
         </table>
+        <br />
+        <canvas id="chart" width="500" height="300"></canvas>
+
     </div>
 
     <div class="col-md-6">
@@ -38,9 +34,19 @@ function unix_to_date(unix){
     </div>
 
 </div>
+{% endblock %}
 
+{% block scripts %}
 <script>
+function unix_to_date(unix){
+    var date = new Date(unix*1000);
+    return date.toDateString();
+}
+</script>
+{% endblock %}
 
+{% block bottom_scripts %}
+<script>
 var width=500;
 var height=600;
 var s_height=height/(24.0*60.0*60.0);
@@ -49,8 +55,7 @@ var header_height=20;
 var c=document.getElementById("visual");
 var ctx=c.getContext("2d");
 
-pomodoros = {{ visual_last_week|tojson|safe }};
-console.log(pomodoros);
+pomodoros = {{ day_entries|tojson|safe }};
 
 //Get correct order of days
 var days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
@@ -72,41 +77,74 @@ for (i = 0; i < 7; i++) {
     tr.appendChild(td)
 }
 
-start = 0;
+//Get day 7 i.e. today
+var today = ((new Date).setHours(0,0,0,0)) / 1000;
 
-for (var day=0;day<7;day++)
-{ 
-    //Draw grid
-    ctx.lineWidth = 0;
-    ctx.fillStyle="#000000";
+//Draw grid outline
+var start = 0;
+ctx.lineWidth = 0;
+ctx.fillStyle="#000000";
+for (var day=0;day<7;day++) { 
     ctx.fillRect(start,0,width/7,height);
-
-    //Draw pomodoros
-    ctx.fillStyle="#FF8C00";
-    if (pomodoros[day]) {
-        $.each(pomodoros[day], function( index, value ) {
-            if (value['type_id'] == 1){
-                //Pomodoro
-                ctx.fillStyle="#FF8C00";
-            } else {
-                //Project
-                ctx.fillStyle="#336699";
-            }
-            ctx.fillRect(
-                start,
-                (s_height * value['start']),
-                width/7,
-                s_height * (value['end']-value['start']));
-        });
-    }
-
     start += width/7;
-}
+ }
 
-//ctx.stroke();
+// Draw pomodoros
+$.each(pomodoros, function( key, pomodoro_list ) {
+    var day_col = 6 - ((today - key)/(24*60*60));
 
-</script> 
+    $.each(pomodoro_list, function( index, value ) {
+        if (value['type_id'] == 1){
+            //Pomodoro
+            ctx.fillStyle="#FF8C00";
+        } else {
+            //Project
+            ctx.fillStyle="#336699";
+        }
 
+        ctx.fillRect(
+            day_col*(width/7),
+            (s_height * (value['start'] - key)),
+            width/7,
+            s_height * (value['end']-value['start']));
+    });
+});
+
+//Draw chart
+var days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+var chart_data = {{ day_stats|tojson|safe }};
+chart_data = chart_data.reverse();
+var chart_labels = [];
+var chart_pomodoros = [];
+var chart_hours = [];
+$.each(chart_data, function( index, value ) {
+    chart_labels.push(days[(new Date(value['date']*1000)).getDay()]);
+    chart_pomodoros.push(value['pomodoros']);
+    chart_hours.push(value['projectHours']);
+});
+
+var data = {
+    labels : chart_labels,
+    datasets : [
+        {
+            fillColor : "rgba(220,220,220,0.5)",
+            strokeColor : "rgba(220,220,220,1)",
+            pointColor : "rgba(220,220,220,1)",
+            pointStrokeColor : "#fff",
+            data : chart_hours
+        },
+        {
+            fillColor : "rgba(151,187,205,0.5)",
+            strokeColor : "rgba(151,187,205,1)",
+            pointColor : "rgba(151,187,205,1)",
+            pointStrokeColor : "#fff",
+            data : chart_pomodoros
+        }
+    ]
+};
+var ctx = document.getElementById("chart").getContext("2d");
+var chart = new Chart(ctx).Line(data);
+
+</script>
 {% endblock %}
-
-

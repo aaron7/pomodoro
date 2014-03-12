@@ -1,11 +1,9 @@
 import sqlite3
 import os
-from flask import Flask, request, session, g, abort, render_template
-from datetime import datetime
+from flask import Flask, g, render_template
+from datetime import date, datetime, timedelta
 import time
-import json
 from collections import defaultdict
-from secret import SECRET_KEY
 
 app = Flask(__name__)
 app.config.from_object(__name__)
@@ -14,7 +12,6 @@ app.config.from_object(__name__)
 app.config.update(dict(
     DATABASE=os.path.join(app.root_path, '../server/pomodoro.db'),
     DEBUG=False,
-    SECRET_KEY=SECRET_KEY,
     MIN_POMODORO_TIME=15*60
 ))
 app.config.from_envvar('POMODORO_SETTINGS', silent=True)
@@ -55,93 +52,115 @@ def sqlite2json(data):
     return [dict(zip(columns, r)) for r in data]
 
 
-def today_count(user_id):
-    now = datetime.now()
-    previous_midnight = datetime(now.year, now.month, now.day)
-    start_of_day = int(time.mktime(previous_midnight.timetuple()))
-    end_of_day = int(start_of_day + (24*60*60))
-
-    count = query_db('select COUNT(*) from pomodoros where user_id = ? and end > ? and end < ? and (end - start) > ' +
-                     str(app.config['MIN_POMODORO_TIME']),
-                     [user_id, start_of_day, end_of_day], one=True)[0]
-
+def count_pomodoros_ts_range(user_id, range_min=0, range_max=2147483647,
+                             entry_type=1):
+    count = query_db('SELECT COUNT(*) FROM pomodoros WHERE user_id = ? and ' +
+                     'end > ? and end < ? and (end - start) > ? and ' +
+                     'type_id = ?',
+                     [user_id, range_min, range_max,
+                      app.config['MIN_POMODORO_TIME'],
+                      entry_type],
+                     one=True)[0]
     return count
 
 
-def yesterday_count(user_id):
-    now = datetime.now()
-    previous_midnight = datetime(now.year, now.month, now.day)
-    end_of_day = int(time.mktime(previous_midnight.timetuple()))
-    start_of_day = int(end_of_day - (24*60*60))
-
-    count = query_db('select COUNT(*) from pomodoros where user_id = ? and end > ? and end < ? and (end - start) > ' +
-                     str(app.config['MIN_POMODORO_TIME']),
-                     [user_id, start_of_day, end_of_day], one=True)[0]
-
-    return count
+def count_pomodoros_date(user_id, date, entry_type=1):
+    end_date = date + timedelta(days=1)
+    return count_pomodoros_ts_range(
+        user_id,
+        range_min=int(time.mktime(date.timetuple())),
+        range_max=int(time.mktime(end_date.timetuple()))
+    )
 
 
-def last_n(user_id, n=10):
-    last_n_entries = query_db('select id,user_id,start,end from pomodoros where user_id = ? and (end - start) > ' +
-                              str(app.config['MIN_POMODORO_TIME']) + ' order by id desc limit '+str(n),
-                              [user_id])
+def project_hours_date(user_id, date):
+    count_seconds = 0
+    entries = day_entries(user_id, date, date + timedelta(1))
+    day = entries[int(time.mktime(date.timetuple()))]
+    for entry in day:
+        if entry['type_id'] == 2:
+            count_seconds += (entry['end'] - entry['start'])
+    return count_seconds / (60.0*60.0)
 
-    return sqlite2json(last_n_entries)
+
+def date_range(start_date, end_date):
+    # Remove any time units from date or datetime
+    start_date = date(start_date.year, start_date.month, start_date.day)
+    end_date = date(end_date.year, end_date.month, end_date.day)
+    # Yield date range
+    for n in range(int((end_date - start_date).days)):
+        yield start_date + timedelta(days=n)
 
 
-def last_week(user_id):
-    now = datetime.now()
-    previous_midnight = datetime(now.year, now.month, now.day)
-    end_of_week = int(time.mktime(previous_midnight.timetuple())) + (24*60*60)
-    start_of_week = int(end_of_week - (7*24*60*60))
+def day_stats(user_id, start_date, end_date):
+    ordered_stats = []
+    for day in date_range(start_date, end_date):
+        ts = int(time.mktime(day.timetuple()))
+        ordered_stats.append(
+            {'date': ts,
+             'pomodoros': count_pomodoros_date(
+                 user_id,
+                 day),
+             'projectHours': project_hours_date(
+                 user_id,
+                 day)
+             })
+    return ordered_stats
 
-    last_week = query_db('select id,user_id,start,end,type_id from pomodoros where user_id = ? and end > ? and end < ? and (end - start) > ' +
-                         str(app.config['MIN_POMODORO_TIME']),
-                         [user_id, start_of_week, end_of_week])
 
-    last_week = sqlite2json(last_week)
+def get_entries_ts_range(user_id, range_min, range_max):
+    entries = query_db('SELECT id, user_id, start, end, type_id ' +
+                       'FROM pomodoros ' +
+                       'WHERE user_id = ? and end > ? and end < ? and ' +
+                       '(end - start) > ? ORDER BY id asc',
+                       [user_id,
+                        range_min,
+                        range_max,
+                        app.config['MIN_POMODORO_TIME']
+                        ])
+    return sqlite2json(entries)
 
+
+def day_entries(user_id, start_date, end_date):
     data = defaultdict(list)
-    day = 1
-    for pomodoro in last_week:
-        end_time = pomodoro['end']
-        if not end_time:
-            continue  # No end time recorded yet
-        while 1:
-            if end_time < start_of_week + (day * 24*60*60):
-                # In this day
-                offset = start_of_week + ((day-1) * 24*60*60)
-                pomodoro["start"] = pomodoro["start"] - offset
-                pomodoro["end"] = pomodoro["end"] - offset
-                data[day-1].append(pomodoro)
-                break
-            else:
-                day += 1
+    entries = get_entries_ts_range(
+        user_id,
+        int(time.mktime(start_date.timetuple())),
+        int(time.mktime(end_date.timetuple())))
+
+    for entry in entries:
+        day = int(time.mktime(date.fromtimestamp(entry['end']).timetuple()))
+        data[day].append(entry)
 
     return data
 
 
 @app.route("/<username>")
 def user_stats(username):
+    # Select user id based on the parameter
     user_id = query_db("select id from users where user = ?",
                        [username], one=True)
     if not user_id:
         return "The user %s does exist." % username
+    else:
+        user_id = user_id[0]
 
-    user_id = user_id[0]
+    return render_template(
+        'user_stats.html',
+        username=username,
+        day=datetime.today().weekday(),
+        day_stats=list(reversed(day_stats(
+                           user_id,
+                           date.today() - timedelta(14-1),
+                           date.today() + timedelta(1)
+                           ))),
+        day_entries=day_entries(user_id,
+                                date.today() - timedelta(7-1),
+                                date.today() + timedelta(1)
+                                ),
+        today=count_pomodoros_date(user_id, date.today())
+        )
 
-    db = get_db()
-    cur = db.execute('select id,user_id,start,end from pomodoros where user_id = ? order by id asc', [user_id])
-    entries = cur.fetchall()
-
-    visual_last_week = last_week(user_id)
-
-    test = last_n(user_id, n=10)
-
-    return render_template('user_stats.html', username=username,
-        yesterday=yesterday_count(user_id), visual_last_week=visual_last_week,
-        today=today_count(user_id), day=datetime.today().weekday(), entries=entries,
-        last10=last_n(user_id))
 
 @app.route("/")
 def welcome():
